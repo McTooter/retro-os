@@ -1,5 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import BlankDemo from "./pages/blank-demo";
+import Home from "./pages/home";
+import Library from "./pages/library";
+import Player from "./pages/player";
 import DesignKitDemo from "./pages/_design";
 import { ThemeProvider } from "@/components/theme-provider";
 
@@ -8,8 +10,11 @@ export default function App() {
     <ThemeProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/library" element={<Library />} />
+          <Route path="/library/:system" element={<Library />} />
+          <Route path="/play" element={<Player />} />
           <Route path="/_design" element={<DesignKitDemo />} />
-          <Route path="/" element={<BlankDemo />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

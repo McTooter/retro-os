@@ -1,8 +1,102 @@
 This file provides guidance when working with code in this repository. The README.md should ALWAYS serve as an accurate, comprehensive piece of documentation for this project. It should describe the broader goals and purpose of this repository along with the technical implementation details. If any aspect of the project changes, the README.md should be updated to reflect that.
 
-# Project Notes
+# RETRO//OS
 
-<!-- Documentation for this specific project goes here. This will include both an articulation of what this project aims to accomplish as well as technical details about how it works. This means explaining the purpose of the project as a whole along with an overview of the design choices. -->
+A browser-based retro game emulator front-end, born from analysis of [iisu](https://iisu.network) and [sumee](https://sumee.online) emulator apps. Plays classic games in your browser with a **Frutiger Aero** visual identity (sky-blue gradients, glassy bokeh, glossy highlights, big display type).
+
+## What's in the box
+
+- **5 systems** — NES, SNES, Game Boy, Game Boy Advance, Sega Genesis (16-BIT). N64 wiring stubbed for later.
+- **Browser emulation** via [Nostalgist.js](https://nostalgist.js.org) (RetroArch Emscripten cores, lazy-loaded).
+- **XMB-style home** — horizontal system rail, glassy console cards, procedural box art for homebrew games.
+- **Library** — drop your own ROMs (`.nes .sfc .gb .gbc .gba .md .bin`) and play them. Stored locally in IndexedDB.
+- **Bundled homebrew** — 3 free homebrew NES games + 2 free homebrew SNES games ship with the site, no upload required.
+- **Player** — fullscreen canvas, on-screen controller, keyboard shortcuts, save/load states, FPS counter.
+
+## How it plays
+
+```
+/                        → home (XMB rail of systems + featured games)
+/library/nes             → NES library (bundled + your uploads)
+/play?rom=/roms/...      → emulator player
+/play?game=<library-id>  → play a library game
+```
+
+Direct URLs:
+- `http://localhost:56448/`
+- `http://localhost:56448/play?rom=%2Froms%2Fnes%2Fplatforming.nes&system=nes`
+
+## Keyboard shortcuts (player)
+
+| Key | Action |
+| --- | --- |
+| Arrows | D-pad |
+| Z / X | A / B |
+| A / S | X / Y |
+| Enter | Start |
+| Shift | Select |
+| F1 | Pause |
+| F2 | Reset |
+| F5 | Save state |
+| F9 | Load state |
+| F / Esc | Fullscreen |
+
+## Visual language
+
+**Frutiger Aero** (mid-2000s optimism): pale sky-blue gradients, floating bokeh circles, glossy white-on-white card surfaces, soft inset shadows, segmented display type. We avoid:
+- generic dark/purple glassmorphism,
+- the "AI slop" Inter + glass-everywhere look,
+- overworked micro-interactions.
+
+## Architecture
+
+```
+src/
+├── components/
+│   ├── aero-background.tsx     Sky/grass/bubbles wallpaper (signature Aero touch)
+│   ├── wave-header.tsx         The wavy top bar (Sumee-inspired)
+│   ├── system-tile.tsx         One XMB console card
+│   ├── console-art.tsx         Procedural box art for homebrew
+│   └── kbd.tsx                 Keyboard-shortcut chips
+├── lib/
+│   ├── console.ts              System metadata (NES, SNES, GB, GBA, Genesis)
+│   ├── games.ts                Bundled homebrew catalog
+│   ├── emulator.ts             Nostalgist wrapper (ROM/file → canvas)
+│   └── library-store.ts        IndexedDB-backed user library
+├── pages/
+│   ├── home.tsx                XMB home (system rail + featured games)
+│   ├── library.tsx             Drop-zone, library grid, bundled grid
+│   └── player.tsx              Fullscreen emulator
+├── styles.css                  Theme + Frutiger Aero utilities
+├── theme.json                  Token source of truth
+├── App.tsx                     React Router
+└── main.tsx                    Entry
+
+public/roms/                    Free public-domain homebrew ROMs (NES, SNES)
+server.ts                       Bun + Hono with binary-ROM fix
+```
+
+## Supported file formats
+
+`.nes` (NES) · `.sfc` (SNES) · `.gb` (Game Boy) · `.gbc` (Game Boy Color) · `.gba` (Game Boy Advance) · `.md` (Sega Genesis) · `.bin` (Genesis / generic)
+
+ROMs dropped into the library are kept in IndexedDB under `retro-os-library` and never leave your browser.
+
+## Emulator wrapper
+
+`src/lib/emulator.ts` wraps Nostalgist with one `launchEmu({ mount, rom, system })` call. Important details:
+
+- The RetroArch Emscripten blob is dynamically imported only when a game actually launches, keeping the initial JS bundle small.
+- For URL-based ROMs (the bundled homebrew), the wrapper passes a `resolveRom` function that points the runtime at the same-origin `/roms/...` path. Without this, Nostalgist rewrites the URL to a GitHub-hosted CDN that we don't control.
+- The wrapper rebuilds the canvas mount on each launch, handles `setButton` via Nostalgist's `press`, and exposes a `screenshot` for save-state thumbnails.
+
+## Binary-ROM fix in `server.ts`
+
+`new Response(Bun.file(...))` streams a file with no explicit `Content-Length` header. The browser's `fetch()` then reports length 0 to Nostalgist and the emulator can't load the ROM. The dev server reads the file as an `ArrayBuffer` and returns it as the response body, which gives the response a real `Content-Length: <bytes>` so the runtime can `Range:` it. Same fix is mirrored in the production static-file handler.
+
+## Why no commercial games?
+
+We only ship **public-domain and homebrew** ROMs by default. To play commercial classics, drop your own legally-sourced ROMs into the library — they stay in your browser's IndexedDB.
 
 ---
 

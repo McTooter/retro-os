@@ -94,8 +94,15 @@ async function configureDevelopment(app: Hono): Promise<ViteDevServer> {
       if (await publicFile.exists()) {
         const stat = await publicFile.stat();
         if (stat && !stat.isDirectory()) {
-          return new Response(publicFile, {
-            headers: { "Cache-Control": "no-store, must-revalidate" },
+          // Convert via arrayBuffer to ensure Content-Length is set correctly
+          // for binary files (Bun.file streaming can report length 0 to fetch()).
+          // Apply same fix to production.
+          const fileArrayBuffer = await publicFile.arrayBuffer();
+          return new Response(fileArrayBuffer, {
+            headers: {
+              "Content-Type": "application/octet-stream",
+              "Cache-Control": "no-store, must-revalidate",
+            },
           });
         }
       }
