@@ -14,6 +14,7 @@ export default function App() {
           <Route path="/library" element={<Library />} />
           <Route path="/library/:system" element={<Library />} />
           <Route path="/play" element={<Player />} />
+          <Route path="/emu" element={<Emu />} />
           <Route path="/_design" element={<DesignKitDemo />} />
         </Routes>
       </BrowserRouter>
